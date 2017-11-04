@@ -1,0 +1,24 @@
+{
+  "parser": "babel-eslint",
+  "extends": ["standard", "plugin:react/recommended"],
+  "plugins": [
+    "react"
+  ],
+  "rules": {
+    "comma-dangle": ["warn", "always"],
+    "array-bracket-spacing": ["warn", "always"],
+    "object-curly-spacing": ["warn", "always"],
+    "no-sequences": ["off"],
+    "no-console": ["warn"],
+    "standard/object-curly-even-spacing": ["off"]
+  },
+  "parserOptions": {
+    "ecmaVersion": 6,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "classes": true,
+      "jsx": true,
+      "experimentalObjectRestSpread": true
+    },
+  },
+}
