@@ -1,6 +1,6 @@
 {
   "name": "react-blips",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Official React bindings for Blips",
   "repository": {
     "type": "git",
