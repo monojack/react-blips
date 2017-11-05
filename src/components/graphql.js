@@ -22,7 +22,7 @@ export default (...args) => BaseComponent => {
   const [ config = {}, ...literals ] = [ ...args, ].reverse()
 
   class blips extends Component {
-    static displayName = `withStore(${BaseComponent.displayName || BaseComponent.name || 'Component'})`
+    static displayName = `Blips(${BaseComponent.displayName || BaseComponent.name || 'Component'})`
 
     static WrappedComponent = BaseComponent
 
