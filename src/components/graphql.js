@@ -1,5 +1,6 @@
 import React, { Component, } from 'react'
 import PropTypes from 'prop-types'
+import { parse, visit, } from 'graphql'
 
 import hoistNonReactStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
@@ -77,7 +78,7 @@ export default (...args) => BaseComponent => {
     clearPromiseRegistry = () => (this.promiseRegistry = [])
 
     convertSubToQuery = ast => {
-      return this.store.visit(ast, {
+      return visit(ast, {
         leave (node, key, parent, path, ancestors) {
           return node.kind === 'OperationDefinition' && node.operation === 'subscription'
             ? {
@@ -117,7 +118,7 @@ export default (...args) => BaseComponent => {
     resolve = (literals, props = this.props) => {
       let cancel = false
       const { query: queries = [], mutation: mutations = [], subscription: subscriptions = [], } = literals
-        .map(this.store.parse)
+        .map(parse)
         .reduce((acc, ast) => {
           const operation = ast.definitions[0].operation
           const queryASTFromSub = operation === 'subscription' ? this.convertSubToQuery(ast) : null
