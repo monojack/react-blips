@@ -175,11 +175,13 @@ export default (...args) => BaseComponent => {
     }
 
     query = (documentAST, operationName) => ({ variables, }) => {
-      this.registerPromise(this.store.query(documentAST, variables, operationName))
+      const promise = this.store.query(documentAST, variables, operationName)
+      this.registerPromise(promise)
+      return promise
     }
 
     mutate = (documentAST, operationName) => ({ variables, }) => {
-      this.store.mutate(documentAST, variables, operationName)
+      return this.store.mutate(documentAST, variables, operationName)
     }
 
     subscribe = (documentAST, operationName) => ({ variables, }) => {
