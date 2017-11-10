@@ -33,3 +33,11 @@ jobs:
       tag: /v[0-9]+(\.[0-9]+)*/
           commands:
         - npm publish
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - build
+      - deployment:
+          requires:
+            - build
