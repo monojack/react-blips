@@ -20,7 +20,13 @@ export default (...args) => BaseComponent => {
     typeof BaseComponent === 'function',
     `You must pass a component to the function returned by blips. Instead received ${JSON.stringify(BaseComponent)}`
   )
-  const [ config = {}, ...literals ] = [ ...args, ].reverse()
+
+  let config = {}
+
+  if (typeof args[args.length - 1] === 'object') {
+    config = args.pop()
+  }
+  const literals = [ ...args, ]
 
   class blips extends Component {
     static displayName = `Blips(${BaseComponent.displayName || BaseComponent.name || 'Component'})`
