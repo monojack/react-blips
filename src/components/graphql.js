@@ -41,7 +41,7 @@ export default (...args) => BaseComponent => {
       super(props, context)
 
       this.store = context.store
-      this.variables = this.computeVariables(props)
+      this.options = this.computeOptions(props)
     }
 
     state = {
@@ -58,10 +58,11 @@ export default (...args) => BaseComponent => {
     }
 
     componentWillReceiveProps (nextProps) {
-      const nextVariables = this.computeVariables(nextProps)
-      if (shallowEqual(this.variables, nextVariables)) return
+      const nextOptions = this.computeOptions(nextProps)
 
-      this.variables = { ...nextVariables, }
+      if (shallowEqual(this.options, nextOptions)) return
+
+      this.options = { ...nextOptions, }
 
       this.cancelSubscriptions()
       this.subscriptionRegistry = []
@@ -96,11 +97,8 @@ export default (...args) => BaseComponent => {
       })
     }
 
-    computeVariables = (props = this.props) => {
-      const { variables, } =
-        config.options && typeof config.options === 'function' ? config.options(props) : config.options || {}
-      return variables || {}
-    }
+    computeOptions = (props = this.props) =>
+      config.options && typeof config.options === 'function' ? config.options(props) : config.options || {}
 
     batchUpdateState = list => {
       const dataKey = isNil(config.name) ? 'data' : config.name
@@ -140,14 +138,12 @@ export default (...args) => BaseComponent => {
           }
         }, {})
 
-      const variables = this.variables
-
       for (const query of queries) {
-        this.query(query)({ variables, })
+        this.query(query)(this.options)
       }
 
       for (const subscription of subscriptions) {
-        this.subscribe(subscription)({ variables, })
+        this.subscribe(subscription)(this.options)
       }
 
       this.registerPromise(
@@ -174,18 +170,18 @@ export default (...args) => BaseComponent => {
       this.cancelResolve = () => (cancel = true)
     }
 
-    query = (documentAST, operationName) => ({ variables, }) => {
-      const promise = this.store.query(documentAST, variables, operationName)
+    query = (documentAST, operationName) => options => {
+      const promise = this.store.query(documentAST, options, operationName)
       this.registerPromise(promise)
       return promise
     }
 
-    mutate = (documentAST, operationName) => ({ variables, }) => {
-      return this.store.mutate(documentAST, variables, operationName)
+    mutate = (documentAST, operationName) => options => {
+      return this.store.mutate(documentAST, options, operationName)
     }
 
-    subscribe = (documentAST, operationName) => ({ variables, }) => {
-      this.store.subscribe(documentAST, variables).then(stream => {
+    subscribe = (documentAST, operationName) => options => {
+      this.store.subscribe(documentAST, options, operationName).then(stream => {
         const sub = stream.subscribe(tick => {
           this.setState({
             [config.name || 'data']: {
