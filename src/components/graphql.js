@@ -7,7 +7,6 @@ import invariant from 'invariant'
 
 import isNil from 'lodash/isNil'
 import isEmpty from 'lodash/isEmpty'
-import merge from 'lodash/merge'
 import get from 'lodash/get'
 
 import { shallowEqual, } from '../utils'
@@ -139,7 +138,7 @@ export default (...args) => BaseComponent => {
           errors && (errorsObject = mergeErrors(errors)(errorsObject))
           return {
             ...acc,
-            [dataKey]: merge(acc[dataKey], isNil(errors) ? data : {}),
+            [dataKey]: { ...(acc[dataKey] || {}), ...(isNil(errors) && data), },
             [mutationsKey]: res[mutationsKey],
             [queriesKey]: res[queriesKey],
           }
