@@ -28,6 +28,16 @@ const getPropName = key => config => {
   return name
 }
 
+const mergeErrors = errors => (object = {}) => {
+  return errors.reduce((obj, err) => {
+    const operationName = err.path[0]
+    return {
+      ...object,
+      [operationName]: [ ...(obj[operationName] || []), err, ],
+    }
+  }, object)
+}
+
 // TODO: subscribe to store only if we have queries
 export default (...args) => BaseComponent => {
   invariant(
@@ -123,20 +133,20 @@ export default (...args) => BaseComponent => {
       const mutationsKey = getPropName('mutations')(config)
       const queriesKey = getPropName('queries')(config)
 
-      const errorList = []
+      let errorsObject = {}
       const update = list.reduce(
         (acc, { errors, data, ...res }) => {
-          errors && errorList.push(errors)
+          errors && (errorsObject = mergeErrors(errors)(errorsObject))
           return {
             ...acc,
-            [dataKey]: merge(acc[dataKey], data),
+            [dataKey]: merge(acc[dataKey], isNil(errors) ? data : {}),
             [mutationsKey]: res[mutationsKey],
             [queriesKey]: res[queriesKey],
           }
         },
         { [dataKey]: { loading: false, }, }
       )
-      !isEmpty(errorList) && (update[dataKey].errors = errorList)
+      !isEmpty(errorsObject) && (update[dataKey].errors = errorsObject)
       this.setState(update)
     }
 
