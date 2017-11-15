@@ -11,7 +11,7 @@ Official React bindings for [**Blips**](https://github.com/monojack/blips)
 * [Installation](#installation)
 * [Usage](#usage)
   * [The **Provider** instance](#the-provider-instance)
-  * [Connect components with **graphql()**](<#connect-components-with-graphql()>)
+  * [Connect components with **graphql**](#connect-components-with-graphql)
   * [The `config` object](#the-config-object)
   * [The `data` prop](#the-data-prop)
   * [The `queries` prop](#the-queries-prop)
@@ -32,7 +32,7 @@ This assumes you are using **npm** and have already installed
 
 ## Usage
 
-#### The **Provider** instance
+#### The `Provider` instance
 
 To get started you'll have to
 [create the store](https://github.com/monojack/blips#creating-the-store) and pass it as a prop to
@@ -53,7 +53,7 @@ ReactDOM.render(
 )
 ```
 
-#### Connect components with **graphql()**
+#### Connect components with `graphql`
 
 `graphql` is the function that creates container components which are connected to the store.
 
