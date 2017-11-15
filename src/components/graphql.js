@@ -14,11 +14,27 @@ import { shallowEqual, } from '../utils'
 
 const getName = op => get(op, [ 'definitions', 0, 'name', 'value', ])
 
+const getPropName = key => config => {
+  let name = key
+
+  if (!isNil(config.name)) {
+    if (typeof config.name === 'object') {
+      name = config.name[key] || key
+    } else if (typeof config.name === 'string') {
+      name = key === 'data' ? config.name : key
+    }
+  }
+
+  return name
+}
+
 // TODO: subscribe to store only if we have queries
 export default (...args) => BaseComponent => {
   invariant(
     typeof BaseComponent === 'function',
-    `You must pass a component to the function returned by blips. Instead received ${JSON.stringify(BaseComponent)}`
+    `You must pass a component to the function returned by blips. Instead received ${JSON.stringify(
+      BaseComponent
+    )}`
   )
 
   let config = {}
@@ -45,7 +61,7 @@ export default (...args) => BaseComponent => {
     }
 
     state = {
-      [config.name || 'data']: {
+      [getPropName('data')(config)]: {
         loading: true,
       },
     }
@@ -98,19 +114,24 @@ export default (...args) => BaseComponent => {
     }
 
     computeOptions = (props = this.props) =>
-      config.options && typeof config.options === 'function' ? config.options(props) : config.options || {}
+      config.options && typeof config.options === 'function'
+        ? config.options(props)
+        : config.options || {}
 
     batchUpdateState = list => {
-      const dataKey = isNil(config.name) ? 'data' : config.name
+      const dataKey = getPropName('data')(config)
+      const mutationsKey = getPropName('mutations')(config)
+      const queriesKey = getPropName('queries')(config)
+
       const errorList = []
       const update = list.reduce(
-        (acc, { errors, data, mutations, queries, }) => {
+        (acc, { errors, data, ...res }) => {
           errors && errorList.push(errors)
           return {
             ...acc,
             [dataKey]: merge(acc[dataKey], data),
-            mutations,
-            queries,
+            [mutationsKey]: res[mutationsKey],
+            [queriesKey]: res[queriesKey],
           }
         },
         { [dataKey]: { loading: false, }, }
@@ -121,22 +142,24 @@ export default (...args) => BaseComponent => {
 
     resolve = (literals, props = this.props) => {
       let cancel = false
-      const { query: queries = [], mutation: mutations = [], subscription: subscriptions = [], } = literals
-        .map(parse)
-        .reduce((acc, ast) => {
-          const operation = ast.definitions[0].operation
-          const queryASTFromSub = operation === 'subscription' ? this.convertSubToQuery(ast) : null
+      const {
+        query: queries = [],
+        mutation: mutations = [],
+        subscription: subscriptions = [],
+      } = literals.map(parse).reduce((acc, ast) => {
+        const operation = ast.definitions[0].operation
+        const queryASTFromSub = operation === 'subscription' ? this.convertSubToQuery(ast) : null
 
-          return {
-            ...acc,
-            ...(queryASTFromSub
-              ? {
-                query: [ ...(acc['query'] || []), queryASTFromSub, ],
-              }
-              : {}),
-            [operation]: [ ...(acc[operation] || []), ast, ],
-          }
-        }, {})
+        return {
+          ...acc,
+          ...(queryASTFromSub
+            ? {
+              query: [ ...(acc['query'] || []), queryASTFromSub, ],
+            }
+            : {}),
+          [operation]: [ ...(acc[operation] || []), ast, ],
+        }
+      }, {})
 
       for (const query of queries) {
         this.query(query)(this.options)
@@ -148,13 +171,13 @@ export default (...args) => BaseComponent => {
 
       this.registerPromise(
         Promise.resolve({
-          mutations: mutations.reduce((acc, mutation) => {
+          [getPropName('mutations')(config)]: mutations.reduce((acc, mutation) => {
             return {
               ...acc,
               [getName(mutation)]: this.query(mutation),
             }
           }, {}),
-          queries: queries.reduce((acc, query) => {
+          [getPropName('queries')(config)]: queries.reduce((acc, query) => {
             return {
               ...acc,
               [getName(query)]: this.query(query),
