@@ -11,10 +11,11 @@ const env = process.env.NODE_ENV
 
 const config = {
   input: 'src/index.js',
-  external: [ 'react', 'blips', ],
+  external: [ 'react', 'blips', 'graphql', ],
   globals: {
     react: 'React',
     blips: 'blips',
+    graphql: 'graphql',
   },
   output: {
     format: 'umd',
@@ -29,11 +30,7 @@ const config = {
     replace({
       'process.env.NODE_ENV': JSON.stringify(env),
     }),
-    commonjs({
-      namedExports: {
-        'graphql': [ 'parse', 'visit', ],
-      },
-    }),
+    commonjs(),
     analyze(opts),
   ],
 }
