@@ -5,13 +5,13 @@ import { parse, visit, } from 'graphql'
 import hoistNonReactStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
 
-import isNil from 'lodash/isNil'
-import isEmpty from 'lodash/isEmpty'
-import get from 'lodash/get'
+import isNil from 'ramda/src/isNil'
+import isEmpty from 'ramda/src/isEmpty'
+import path from 'ramda/src/path'
 
 import { shallowEqual, } from '../utils'
 
-const getName = op => get(op, [ 'definitions', 0, 'name', 'value', ])
+const getName = op => path([ 'definitions', 0, 'name', 'value', ])(op)
 
 const getPropName = key => config => {
   let name = key
@@ -54,7 +54,9 @@ export default (...args) => BaseComponent => {
   const literals = [ ...args, ]
 
   class blips extends Component {
-    static displayName = `Blips(${BaseComponent.displayName || BaseComponent.name || 'Component'})`
+    static displayName = `Blips(${BaseComponent.displayName ||
+      BaseComponent.name ||
+      'Component'})`
 
     static WrappedComponent = BaseComponent
 
@@ -112,7 +114,8 @@ export default (...args) => BaseComponent => {
     convertSubToQuery = ast => {
       return visit(ast, {
         leave (node, key, parent, path, ancestors) {
-          return node.kind === 'OperationDefinition' && node.operation === 'subscription'
+          return node.kind === 'OperationDefinition' &&
+            node.operation === 'subscription'
             ? {
               ...node,
               operation: 'query',
@@ -157,7 +160,8 @@ export default (...args) => BaseComponent => {
         subscription: subscriptions = [],
       } = literals.map(parse).reduce((acc, ast) => {
         const operation = ast.definitions[0].operation
-        const queryASTFromSub = operation === 'subscription' ? this.convertSubToQuery(ast) : null
+        const queryASTFromSub =
+          operation === 'subscription' ? this.convertSubToQuery(ast) : null
 
         return {
           ...acc,
@@ -180,12 +184,15 @@ export default (...args) => BaseComponent => {
 
       this.registerPromise(
         Promise.resolve({
-          [getPropName('mutations')(config)]: mutations.reduce((acc, mutation) => {
-            return {
-              ...acc,
-              [getName(mutation)]: this.query(mutation),
-            }
-          }, {}),
+          [getPropName('mutations')(config)]: mutations.reduce(
+            (acc, mutation) => {
+              return {
+                ...acc,
+                [getName(mutation)]: this.query(mutation),
+              }
+            },
+            {}
+          ),
           [getPropName('queries')(config)]: queries.reduce((acc, query) => {
             return {
               ...acc,
