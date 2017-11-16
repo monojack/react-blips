@@ -35,8 +35,8 @@ This assumes you are using **npm** and have already installed
 #### The `Provider` instance
 
 To get started you'll have to
-[create the store](https://github.com/monojack/blips#creating-the-store) and pass it as a prop to
-the `Provider` component
+[create the store](https://github.com/monojack/blips#creating-the-store) and
+pass it as a prop to the `Provider` component
 
 ```js
 import { createStore } from 'blips'
@@ -55,7 +55,8 @@ ReactDOM.render(
 
 #### Connect components with `graphql`
 
-`graphql` is the function that creates container components which are connected to the store.
+`graphql` is the function that creates container components which are connected
+to the store.
 
 `graphql(...operations [, config])(BaseComponent)`
 
@@ -89,8 +90,8 @@ const allTodosQuery = `
 export default graphql(allTodosQuery)(TodoList)
 ```
 
-You can add as many operations as you need, the only requirement is that if you provide a `config`
-object, it must be the last argument.
+You can add as many operations as you need, the only requirement is that if you
+provide a `config` object, it must be the last argument.
 
 ```js
 // ...
@@ -99,7 +100,8 @@ const config = { ... }
 export default graphql(allTodosQuery, allUsersQuery, config)(TodoList)
 ```
 
-By default, the result of your queries will be added to the component's props under the `data` key:
+By default, the result of your queries will be added to the component's props
+under the `data` key:
 
 ```js
 props: {
@@ -112,8 +114,8 @@ props: {
 
 #### The `data` prop
 
-In addition to the fields you query, the `data` prop may also contain a `loading` flag and/or an
-`errors` object
+In addition to the fields you query, the `data` prop may also contain a
+`loading` flag and/or an `errors` object
 
 ##### `loading`
 
@@ -127,8 +129,9 @@ props: {
 }
 ```
 
-While loading, the fields you've queried may not be part of the `data`. Make sure to add some
-default values or display a loader until the operations finish executing.
+While loading, the fields you've queried may not be part of the `data`. Make
+sure to add some default values or display a loader until the operations finish
+executing.
 
 ```js
 // default values:
@@ -164,13 +167,13 @@ props: {
 }
 ```
 
-You should always have some sort of error-handling in place, this is generally a good practice, not
-only when using **Blips**.
+You should always have some sort of error-handling in place, this is generally a
+good practice, not only when using **Blips**.
 
 #### The `config` object
 
-`graphql` accepts an optional argument which represents the configuration object. This argument
-should always be provided last, after all operations.
+`graphql` accepts an optional argument which represents the configuration
+object. This argument should always be provided last, after all operations.
 
 ```js
 graphql(...operations, config)(BaseComponent)
@@ -178,8 +181,8 @@ graphql(...operations, config)(BaseComponent)
 
 ##### config.name
 
-This property allows you to change the name of the `data` prop that gets passed down to your
-component.
+This property allows you to change the name of the `data` prop that gets passed
+down to your component.
 
 ```js
 graphql(...operations, { name: 'state' })(BaseComponent)
@@ -194,9 +197,9 @@ graphql(...operations, { name: 'state' })(BaseComponent)
 // }
 ```
 
-You can also define `config.name` as a plain object if you wish to provide custom names for the
-other props ([queries](#the-queries-prop), [mutations](#the-mutations-prop)) that `graphql` adds to
-the container component
+You can also define `config.name` as a plain object if you wish to provide
+custom names for the other props ([queries](#the-queries-prop),
+[mutations](#the-mutations-prop)) that `graphql` adds to the container component
 
 ```js
 graphql(...operations, {
@@ -217,8 +220,9 @@ graphql(...operations, {
 
 ##### config.options
 
-This property is an object or function that allows you to provide the variables needed for your
-operations or to extend the context of the resolvers they will call.
+This property is an object or function that allows you to provide the variables
+needed for your operations or to extend the context of the resolvers they will
+call.
 
 ```js
 // resolvers.js
@@ -255,8 +259,8 @@ export default graphql(allTodosQuery, {
 })
 ```
 
-You can define `config.options` as a plain object, or as a function that takes the component’s props
-as an argument and returns the object.
+You can define `config.options` as a plain object, or as a function that takes
+the component’s props as an argument and returns the object.
 
 ```js
 export default graphql(allTodosQuery, {
@@ -269,16 +273,17 @@ export default graphql(allTodosQuery, {
 
 #### The `queries` prop
 
-In addition to `data`, the connected component will also receive a `queries` prop which contains all
-the query operations specified, as methods that you can call manually.
+In addition to `data`, the connected component will also receive a `queries`
+prop which contains all the query operations specified, as methods that you can
+call manually.
 
 ```js
 // ...
 
 onUserSelect = async id => {
-  const { queries: { allTodos, user }, count, user } = this.props
+  const { queries: { allTodosQuery, user }, count, user } = this.props
   const newUser = await user({ variables: { id } })
-  const data = await allTodos({ variables: { first: count }, context: { user: newUser } })
+  const data = await allTodosQuery({ variables: { first: count }, context: { user: newUser } })
 
   this.setState({
     todos: data.allTodos,
@@ -300,25 +305,29 @@ render() {
 }
 ```
 
-This is great for the above type of behaviour, but you can also use these queries to poll the store
-at a specific interval and update the component's state. The problem with this approach is that
-you'd have to add the props you want to poll for to the state so that your component updates
-correctly. If this is what you want, you're better off using
+This is great for the above type of behaviour, but you can also use these
+queries to poll the store at a specific interval and update the component's
+state. The problem with this approach is that you'd have to add the props you
+want to poll for to the state so that your component updates correctly. If this
+is what you want, you're better off using
 [`subscription`](#subscribing-to-store-changes) instead of `query`
 
 #### The `mutations` prop
 
-Another prop passed down to the container component is `mutations`. This prop contains all the
-mutations you provide to `graphql()`
+Another prop passed down to the container component is `mutations`. This prop
+contains all the mutations you provide to `graphql()`
 
 ```js
 class Todos extends Component {
   // ...
 
   onKeyUp = e => {
-    const { mutations: { createTodo = () => {} }, data: { allTodos = [] } } = this.props
+    const {
+      mutations: { createTodoMutation = () => {} },
+      data: { allTodos = [] },
+    } = this.props
 
-    createTodo({ variables: { label: e.target.value } })
+    createTodoMutation({ variables: { label: e.target.value } })
     // adds the new todo to the store and our subscription will handle the component update
   }
 
@@ -355,11 +364,12 @@ export default graphql(allTodosSubscription, createTodoMutation, {
 
 #### Subscribing to store changes
 
-If you provide subscription operations to `graphql()`, the connected component will also subscribe
-to store changes and will update correctly. It will also clean up after itself when unmounting.
-There's no magic happening behind the scenes, you'll still have to write the resolvers yourself.
-Read the [**Blips** documentation](https://github.com/monojack/blips#subscriptions) about writing
-resolvers for subscriptions
+If you provide subscription operations to `graphql()`, the connected component
+will also subscribe to store changes and will update correctly. It will also
+clean up after itself when unmounting. There's no magic happening behind the
+scenes, you'll still have to write the resolvers yourself. Read the
+[**Blips** documentation](https://github.com/monojack/blips#subscriptions) about
+writing resolvers for subscriptions
 
 ```js
 const allTodosSubscription = `
@@ -377,4 +387,5 @@ export default graphql(allTodosSubscription)(TodoList)
 
 ## Tips
 
-See [**Blips** documentation](https://github.com/monojack/blips#the-tips) to read about tips
+See [**Blips** documentation](https://github.com/monojack/blips#the-tips) to
+read about tips
