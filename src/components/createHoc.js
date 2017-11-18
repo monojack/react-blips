@@ -166,14 +166,14 @@ export function createHoc (sources, config) {
       subscribe = (document, operationName) => async options => {
         this.query(convertSubscriptionToQuery(document))(options)
 
-        const stream = await this.store.subscribe(
+        const iterator = await this.store.subscribe(
           document,
           options,
           operationName
         )
 
         registerSubscription(
-          stream.subscribe(tick => {
+          iterator.toObservable().subscribe(tick => {
             this.setState({
               [dataKey]: {
                 ...this.state[dataKey],
