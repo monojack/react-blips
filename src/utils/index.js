@@ -1,1 +1,7 @@
 export { shallowEqual, } from './shallowEqual'
+export { getPropNameOr, } from './getPropNameOr'
+export { getOperationName, } from './getOperationName'
+export { mergeOperations, } from './mergeOperations'
+export { mergeErrors, } from './mergeErrors'
+export { convertSubscriptionToQuery, } from './convertSubscriptionToQuery'
+export { computeNextState, } from './computeNextState'
