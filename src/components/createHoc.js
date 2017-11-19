@@ -110,10 +110,7 @@ export function createHoc (sources, config) {
       }
 
       resolve = () => {
-        // console.log(sources)
-        // return
         let cancel = false
-        // console.log(printType(sources[0]))
         const {
           query: queries = [],
           mutation: mutations = [],
