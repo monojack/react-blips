@@ -1,6 +1,6 @@
 import React, { Component, } from 'react'
 import PropTypes from 'prop-types'
-import { parse, } from 'graphql'
+import { parse, print, } from 'graphql'
 
 import hoistNonReactStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
@@ -32,6 +32,8 @@ export function createHoc (sources, config) {
       subscription.unsubscribe()
     }
   }
+
+  const updateBatch = []
 
   const computeOptions = props =>
     config.options && typeof config.options === 'function'
@@ -91,18 +93,27 @@ export function createHoc (sources, config) {
 
       cancelResolve = () => {}
 
-      batchUpdateState = list => {
+      batchUpdateState = (list = updateBatch, state = this.state, force) => {
+        if (list.length === 0 && !force) return
         this.setState(
-          computeNextState(list, {
-            dataKey,
-            queriesKey,
-            mutationsKey,
-          })
+          computeNextState(
+            list,
+            {
+              dataKey,
+              queriesKey,
+              mutationsKey,
+            },
+            state
+          )
         )
+        updateBatch.length = 0
       }
 
       resolve = () => {
+        // console.log(sources)
+        // return
         let cancel = false
+        // console.log(printType(sources[0]))
         const {
           query: queries = [],
           mutation: mutations = [],
@@ -147,20 +158,25 @@ export function createHoc (sources, config) {
         )
 
         Promise.all(promiseRegistry).then(res => {
-          !cancel && this.batchUpdateState(res)
+          !cancel &&
+            this.batchUpdateState(res, { data: { loading: false, }, }, true)
         })
 
         this.cancelResolve = () => (cancel = true)
       }
 
       query = (document, operationName) => options => {
-        const promise = this.store.query(document, options, operationName)
+        const promise = this.store.query(
+          print(document),
+          options,
+          operationName
+        )
         registerPromise(promise)
         return promise
       }
 
       mutate = (document, operationName) => options => {
-        return this.store.mutate(document, options, operationName)
+        return this.store.mutate(print(document), options, operationName)
       }
 
       subscribe = (document, operationName) => async options => {
@@ -173,14 +189,9 @@ export function createHoc (sources, config) {
         )
 
         registerSubscription(
-          iterator.toObservable().subscribe(tick => {
-            this.setState({
-              [dataKey]: {
-                ...this.state[dataKey],
-                ...tick.data,
-                loading: false,
-              },
-            })
+          iterator.toObservable().subscribe(res => {
+            updateBatch.push(res)
+            process.nextTick(this.batchUpdateState)
           })
         )
       }

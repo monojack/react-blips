@@ -1,10 +1,9 @@
 export function mergeErrors (errors) {
   return (object = {}) => {
-    return errors.reduce((obj, err) => {
-      const operationName = err.path[0] || 'schema'
+    return Object.entries(errors).reduce((obj, [ type, err, ]) => {
       return {
-        ...object,
-        [operationName]: [ ...(obj[operationName] || []), err, ],
+        ...obj,
+        [type]: [ ...(obj[type] || []), ...err, ],
       }
     }, object)
   }
