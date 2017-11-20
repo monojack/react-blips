@@ -1,6 +1,6 @@
 import React, { Component, } from 'react'
 import PropTypes from 'prop-types'
-import { parse, print, } from 'graphql'
+import { parse, print, concatAST, } from 'graphql'
 
 import hoistNonReactStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
@@ -8,9 +8,13 @@ import invariant from 'invariant'
 import {
   shallowEqual,
   getPropNameOr,
-  mergeOperations,
+  createDocumentAST,
   convertSubscriptionToQuery,
+  getRequiredFragments,
   computeNextState,
+  getOperationASTs,
+  getFragmentASTs,
+  mergeOperations,
 } from '../utils'
 
 export function createHoc (sources, config) {
@@ -64,6 +68,7 @@ export function createHoc (sources, config) {
 
         this.store = context.store
         this.options = computeOptions(props)
+        this.parsedData = this.parse(sources)
       }
 
       state = {
@@ -109,48 +114,80 @@ export function createHoc (sources, config) {
         updateBatch.length = 0
       }
 
+      parse = sources => {
+        const source = sources.reduce((acc, curr) => (acc += curr), '')
+        const document = parse(source)
+        const asts = getOperationASTs(document).reduce(
+          (acc, ast) => ({
+            ...acc,
+            [ast.operation]: [ ...(acc[ast.operation] || []), ast, ],
+          }),
+          {}
+        )
+
+        asts.query = [
+          ...(asts.query || []),
+          ...(asts.subscription || []).map(convertSubscriptionToQuery),
+        ]
+
+        asts.fragments = getFragmentASTs(document).reduce(
+          (acc, ast) => ({
+            ...acc,
+            [ast.name.value]: ast,
+          }),
+          {}
+        )
+
+        return {
+          source,
+          document,
+          asts,
+        }
+      }
+
       resolve = () => {
         let cancel = false
         const {
-          query: queries = [],
-          mutation: mutations = [],
-          subscription: subscriptions = [],
-        } = sources.map(parse).reduce((acc, ast) => {
-          const {
-            query = [],
-            mutation = [],
-            subscription = [],
-          } = ast.definitions.reduce((ops, definition) => {
-            const { operation, } = definition
-            return {
-              ...ops,
-              [operation]: [
-                ...(ops[operation] || []),
-                { ...ast, definitions: [ definition, ], },
-              ],
-            }
-          }, {})
+          source,
+          asts: {
+            query: queries = [],
+            mutation: mutations = [],
+            subscription: subscriptions = [],
+            fragments,
+          },
+        } = this.parsedData
 
-          return {
-            ...acc,
-            query: [ ...(acc.query || []), ...query, ],
-            mutation: [ ...(acc.mutation || []), ...mutation, ],
-            subscription: [ ...(acc.subscription || []), ...subscription, ],
-          }
-        }, {})
-
-        for (const query of queries) {
-          this.query(query)(this.options)
-        }
+        this.query(source)(null)(this.options)
 
         for (const subscription of subscriptions) {
-          this.subscribe(subscription)(this.options)
+          const requiredFragments = getRequiredFragments(subscription).map(
+            name => createDocumentAST(fragments[name])
+          )
+
+          const subDocument = concatAST([
+            createDocumentAST(subscription),
+            ...requiredFragments,
+          ])
+
+          const queryDocument = concatAST([
+            ...queries.map(createDocumentAST),
+            ...requiredFragments,
+          ])
+
+          this.query(print(queryDocument))(null)(this.options)
+          this.subscribe(subDocument)(this.options)
         }
 
         registerPromise(
           Promise.resolve({
-            [queriesKey]: queries.reduce(mergeOperations(this.query), {}),
-            [mutationsKey]: mutations.reduce(mergeOperations(this.mutate), {}),
+            [queriesKey]: queries.reduce(
+              mergeOperations(this.query(source)),
+              {}
+            ),
+            [mutationsKey]: mutations.reduce(
+              mergeOperations(this.mutate(source)),
+              {}
+            ),
           })
         )
 
@@ -162,28 +199,18 @@ export function createHoc (sources, config) {
         this.cancelResolve = () => (cancel = true)
       }
 
-      query = (document, operationName) => options => {
-        const promise = this.store.query(
-          print(document),
-          options,
-          operationName
-        )
+      query = source => operationName => options => {
+        const promise = this.store.query(source, options, operationName)
         registerPromise(promise)
         return promise
       }
 
-      mutate = (document, operationName) => options => {
-        return this.store.mutate(print(document), options, operationName)
+      mutate = source => operationName => options => {
+        return this.store.mutate(source, options, operationName)
       }
 
-      subscribe = (document, operationName) => async options => {
-        this.query(convertSubscriptionToQuery(document))(options)
-
-        const iterator = await this.store.subscribe(
-          document,
-          options,
-          operationName
-        )
+      subscribe = document => async options => {
+        const iterator = await this.store.subscribe(document, options)
 
         registerSubscription(
           iterator.toObservable().subscribe(res => {
