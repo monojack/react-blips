@@ -1,4 +1,5 @@
 import { Component, Children, } from 'react'
+import { GraphQLDirective, DirectiveLocation, } from 'graphql'
 import PropTypes from 'prop-types'
 
 export default class Provider extends Component {
@@ -9,6 +10,7 @@ export default class Provider extends Component {
       query: PropTypes.func.isRequired,
       mutate: PropTypes.func.isRequired,
       subscribe: PropTypes.func.isRequired,
+      graphql: PropTypes.func.isRequired,
     }).isRequired,
     children: PropTypes.element.isRequired,
   }
@@ -24,6 +26,19 @@ export default class Provider extends Component {
   constructor (props, context) {
     super(props, context)
     this.store = props.store
+
+    const apiDirective = new GraphQLDirective({
+      name: 'api',
+      description:
+        'Sends this operation to a real GraphQL server for execution',
+      locations: [
+        DirectiveLocation.QUERY,
+        DirectiveLocation.MUTATION,
+        DirectiveLocation.SUBSCRIPTION,
+      ],
+    })
+
+    this.store.schema._directives.push(apiDirective)
   }
 
   render () {

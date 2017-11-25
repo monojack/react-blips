@@ -1,6 +1,6 @@
 import React, { Component, } from 'react'
 import PropTypes from 'prop-types'
-import { parse, print, concatAST, } from 'graphql'
+import { parse, } from 'graphql'
 
 import hoistNonReactStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
@@ -8,16 +8,15 @@ import invariant from 'invariant'
 import {
   shallowEqual,
   getPropNameOr,
-  createDocumentAST,
   convertSubscriptionToQuery,
-  getRequiredFragments,
   computeNextState,
   getOperationASTs,
   getFragmentASTs,
-  mergeOperations,
+  getOperationName,
+  makeExecutableOperation,
 } from '../utils'
 
-export function createHoc (sources, config) {
+export function createGraphQLHoc (sources, config) {
   const dataKey = getPropNameOr('data')(config)
   const mutationsKey = getPropNameOr('mutations')(config)
   const queriesKey = getPropNameOr('queries')(config)
@@ -44,15 +43,15 @@ export function createHoc (sources, config) {
       ? config.options(props)
       : config.options || {}
 
-  return function Blips (BaseComponent) {
+  return function createGraphQLHoc (BaseComponent) {
     invariant(
       typeof BaseComponent === 'function',
-      `You must pass a component to the function returned by blips. Instead received ${JSON.stringify(
+      `You must pass a component to the function returned by graphql. Instead received ${JSON.stringify(
         BaseComponent
       )}`
     )
 
-    class blips extends Component {
+    class Blips extends Component {
       static displayName = `Blips(${BaseComponent.displayName ||
         BaseComponent.name ||
         'Component'})`
@@ -148,7 +147,6 @@ export function createHoc (sources, config) {
       resolve = () => {
         let cancel = false
         const {
-          source,
           asts: {
             query: queries = [],
             mutation: mutations = [],
@@ -157,37 +155,45 @@ export function createHoc (sources, config) {
           },
         } = this.parsedData
 
-        this.query(source)(null)(this.options)
-
         for (const subscription of subscriptions) {
-          const requiredFragments = getRequiredFragments(subscription).map(
-            name => createDocumentAST(fragments[name])
+          const executableSubscription = makeExecutableOperation.call(
+            this,
+            subscription,
+            fragments
           )
+          executableSubscription(this.options)
+        }
 
-          const subDocument = concatAST([
-            createDocumentAST(subscription),
-            ...requiredFragments,
-          ])
+        const queryOperations = queries.reduce((acc, curr) => {
+          return {
+            ...acc,
+            [getOperationName(curr)]: makeExecutableOperation.call(
+              this,
+              curr,
+              fragments
+            ),
+          }
+        }, {})
 
-          const queryDocument = concatAST([
-            ...queries.map(createDocumentAST),
-            ...requiredFragments,
-          ])
+        const mutationOperations = mutations.reduce((acc, curr) => {
+          return {
+            ...acc,
+            [getOperationName(curr)]: makeExecutableOperation.call(
+              this,
+              curr,
+              fragments
+            ),
+          }
+        }, {})
 
-          this.query(print(queryDocument))(null)(this.options)
-          this.subscribe(subDocument)(this.options)
+        for (const query of Object.values(queryOperations)) {
+          registerPromise(query(this.options))
         }
 
         registerPromise(
           Promise.resolve({
-            [queriesKey]: queries.reduce(
-              mergeOperations(this.query(source)),
-              {}
-            ),
-            [mutationsKey]: mutations.reduce(
-              mergeOperations(this.mutate(source)),
-              {}
-            ),
+            [queriesKey]: queryOperations,
+            [mutationsKey]: mutationOperations,
           })
         )
 
@@ -199,17 +205,19 @@ export function createHoc (sources, config) {
         this.cancelResolve = () => (cancel = true)
       }
 
-      query = source => operationName => options => {
-        const promise = this.store.query(source, options, operationName)
-        registerPromise(promise)
-        return promise
+      query = source => (options = this.options) => {
+        return this.store.query(source, options)
       }
 
-      mutate = source => operationName => options => {
-        return this.store.mutate(source, options, operationName)
+      mutate = source => (options = this.options) => {
+        return this.store.mutate(source, options)
       }
 
-      subscribe = document => async options => {
+      graphql = source => (options = this.options) => {
+        return this.store.graphql(source, options)
+      }
+
+      subscribe = document => async (options = this.options) => {
         const iterator = await this.store.subscribe(document, options)
 
         registerSubscription(
@@ -221,11 +229,21 @@ export function createHoc (sources, config) {
       }
 
       render () {
-        const props = { ...this.props, ...this.state, }
+        const props = Object.entries(this.state).reduce(
+          (acc, [ key, value, ]) => ({
+            ...acc,
+            [key]: {
+              ...(acc[key] || {}),
+              ...value,
+            },
+          }),
+          this.props
+        )
+
         return <BaseComponent {...props} />
       }
     }
 
-    return hoistNonReactStatics(blips, BaseComponent, {})
+    return hoistNonReactStatics(Blips, BaseComponent, {})
   }
 }

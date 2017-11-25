@@ -1,4 +1,4 @@
-import { createGraphQLHoc, } from './createGraphQLHoc'
+import { createWithOperationsHoc, } from './createWithOperationsHoc'
 
 export default (...args) => {
   let config = {}
@@ -8,5 +8,5 @@ export default (...args) => {
   }
   const sources = [ ...args, ]
 
-  return createGraphQLHoc(sources, config)
+  return createWithOperationsHoc(sources, config)
 }
