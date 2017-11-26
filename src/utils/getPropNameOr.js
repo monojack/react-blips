@@ -1,4 +1,4 @@
-import isNil from 'ramda/es/isNil'
+import { isNil, } from './isNil'
 
 export function getPropNameOr (key) {
   return config => {

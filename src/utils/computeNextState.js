@@ -1,8 +1,7 @@
-import isNil from 'ramda/es/isNil'
-import when from 'ramda/es/when'
-import always from 'ramda/es/always'
-import isEmpty from 'ramda/es/isEmpty'
-import omit from 'ramda/es/omit'
+import { isNil, } from './isNil'
+import { when, } from './when'
+import { isEmpty, } from './isEmpty'
+import { omit, } from './omit'
 
 import { mergeErrors, } from './mergeErrors'
 
@@ -19,21 +18,21 @@ export function computeNextState (
       ...acc,
       [dataKey]: {
         ...(acc[dataKey] || {}),
-        ...when(isNil, always({}))(data),
+        ...when(isNil, {}, data),
       },
       [mutationsKey]: {
         ...(acc[mutationsKey] || {}),
-        ...when(isNil, always({}))(res[mutationsKey]),
+        ...when(isNil, {}, res[mutationsKey]),
       },
       [queriesKey]: {
         ...(acc[queriesKey] || {}),
-        ...when(isNil, always({}))(res[queriesKey]),
+        ...when(isNil, {}, res[queriesKey]),
       },
     }
   }, base)
 
   if (!isEmpty(errorsObject)) {
-    update[dataKey] = omit(Object.keys(errorsObject))(update[dataKey])
+    update[dataKey] = omit(Object.keys(errorsObject), update[dataKey])
     update[dataKey]['errors'] = errorsObject
   }
 

@@ -24,8 +24,7 @@
     "hoist-non-react-statics": "2.3.1",
     "invariant": "2.2.2",
     "loose-envify": "1.3.1",
-    "prop-types": "15.6.0",
-    "ramda": "0.25.0"
+    "prop-types": "15.6.0"
   },
   "devDependencies": {
     "babel-cli": "6.26.0",
