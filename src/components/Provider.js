@@ -4,28 +4,28 @@ import PropTypes from 'prop-types'
 
 export default class Provider extends Component {
   static propTypes = {
-    store: PropTypes.shape({
+    client: PropTypes.shape({
       state: PropTypes.object.isRequired,
       schema: PropTypes.object.isRequired,
       query: PropTypes.func.isRequired,
       mutate: PropTypes.func.isRequired,
       subscribe: PropTypes.func.isRequired,
-      graphql: PropTypes.func.isRequired,
+      fetch: PropTypes.func.isRequired,
     }).isRequired,
     children: PropTypes.element.isRequired,
   }
 
   static childContextTypes = {
-    store: PropTypes.object.isRequired,
+    client: PropTypes.object.isRequired,
   }
 
   getChildContext () {
-    return { store: this.store, }
+    return { client: this.client, }
   }
 
   constructor (props, context) {
     super(props, context)
-    this.store = props.store
+    this.client = props.client
 
     const apiDirective = new GraphQLDirective({
       name: 'api',
@@ -38,7 +38,7 @@ export default class Provider extends Component {
       ],
     })
 
-    this.store.schema._directives.push(apiDirective)
+    this.client.schema._directives.push(apiDirective)
   }
 
   render () {

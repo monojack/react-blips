@@ -27,6 +27,7 @@
     "prop-types": "15.6.0"
   },
   "devDependencies": {
+    "apollo-fetch": "0.6.0",
     "babel-cli": "6.26.0",
     "babel-eslint": "8.0.1",
     "babel-plugin-external-helpers": "6.22.0",
@@ -38,7 +39,7 @@
     "babel-preset-es2015": "6.24.1",
     "babel-preset-react": "6.24.1",
     "babel-preset-stage-0": "6.24.1",
-    "blips": "^0.11.0",
+    "blips": "1.0.0-rc.1-2",
     "cross-env": "5.1.0",
     "eslint": "4.9.0",
     "eslint-config-standard": "10.2.1",
@@ -66,16 +67,16 @@
   "peerDependencies": {
     "react": "^15.4.0 || ^16.0.0-0",
     "graphql": "^0.11.7",
-    "blips": "^0.11.0"
+    "blips": "^0.11.0 || ^1.0.0",
+    "apollo-fetch": "^0.6.0"
   },
   "scripts": {
-    "prebuild": "npm run clean",
     "build:cjs": "cross-env BABEL_ENV=cjs babel src --out-dir lib",
     "build:es": "cross-env BABEL_ENV=es babel src --out-dir es",
     "build:umd": "cross-env BABEL_ENV=rollup NODE_ENV=development rollup -c -o dist/react-blips.js",
     "build:umd:min": "cross-env BABEL_ENV=rollup NODE_ENV=production rollup -c -o dist/react-blips.min.js",
     "build": "npm run build:cjs && npm run build:es && npm run build:umd && npm run build:umd:min",
-    "prepublish": "npm run build",
+    "prepare": "npm run clean && npm run build",
     "lint": "eslint src",
     "clean": "rimraf lib dist es",
     "dev": "npm run build:es -- -w"

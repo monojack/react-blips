@@ -8,12 +8,10 @@ import invariant from 'invariant'
 import {
   shallowEqual,
   getPropNameOr,
-  convertSubscriptionToQuery,
   computeNextState,
-  getOperationASTs,
-  getFragmentASTs,
-  getOperationName,
-  makeExecutableOperation,
+  mapObject,
+  operationsMap,
+  convertSubscriptionToQuery,
 } from '../utils'
 
 export function createGraphQLHoc (sources, config) {
@@ -59,13 +57,13 @@ export function createGraphQLHoc (sources, config) {
       static WrappedComponent = BaseComponent
 
       static contextTypes = {
-        store: PropTypes.object.isRequired,
+        client: PropTypes.object.isRequired,
       }
 
       constructor (props, context) {
         super(props, context)
 
-        this.store = context.store
+        this.client = context.client
         this.options = computeOptions(props)
         this.parsedData = this.parse(sources)
       }
@@ -116,84 +114,48 @@ export function createGraphQLHoc (sources, config) {
       parse = sources => {
         const source = sources.reduce((acc, curr) => (acc += curr), '')
         const document = parse(source)
-        const asts = getOperationASTs(document).reduce(
-          (acc, ast) => ({
-            ...acc,
-            [ast.operation]: [ ...(acc[ast.operation] || []), ast, ],
-          }),
-          {}
-        )
-
-        asts.query = [
-          ...(asts.query || []),
-          ...(asts.subscription || []).map(convertSubscriptionToQuery),
-        ]
-
-        asts.fragments = getFragmentASTs(document).reduce(
-          (acc, ast) => ({
-            ...acc,
-            [ast.name.value]: ast,
-          }),
-          {}
-        )
+        const operations = operationsMap(document)
 
         return {
           source,
           document,
-          asts,
+          operations,
         }
       }
 
       resolve = () => {
         let cancel = false
         const {
-          asts: {
-            query: queries = [],
-            mutation: mutations = [],
-            subscription: subscriptions = [],
-            fragments,
+          operations: {
+            query: queries = {},
+            mutation: mutations = {},
+            subscription: subscriptions = {},
+            fetch: fetches = {},
           },
         } = this.parsedData
 
-        for (const subscription of subscriptions) {
-          const executableSubscription = makeExecutableOperation.call(
-            this,
-            subscription,
-            fragments
+        for (const subscription of Object.values(subscriptions)) {
+          this.subscribe(subscription)(this.options)
+          registerPromise(
+            this.query(convertSubscriptionToQuery(subscription))(this.options)
           )
-          executableSubscription(this.options)
         }
 
-        const queryOperations = queries.reduce((acc, curr) => {
-          return {
-            ...acc,
-            [getOperationName(curr)]: makeExecutableOperation.call(
-              this,
-              curr,
-              fragments
-            ),
-          }
-        }, {})
+        for (const query of Object.values(queries)) {
+          registerPromise(this.query(query)(this.options))
+        }
 
-        const mutationOperations = mutations.reduce((acc, curr) => {
-          return {
-            ...acc,
-            [getOperationName(curr)]: makeExecutableOperation.call(
-              this,
-              curr,
-              fragments
-            ),
-          }
-        }, {})
-
-        for (const query of Object.values(queryOperations)) {
-          registerPromise(query(this.options))
+        for (const fetch of Object.values(fetches)) {
+          registerPromise(this.fetch(fetch)(this.options))
         }
 
         registerPromise(
           Promise.resolve({
-            [queriesKey]: queryOperations,
-            [mutationsKey]: mutationOperations,
+            [queriesKey]: {
+              ...mapObject(this.query)(queries),
+              ...mapObject(this.fetch)(fetches),
+            },
+            [mutationsKey]: mapObject(this.mutate)(mutations),
           })
         )
 
@@ -205,20 +167,20 @@ export function createGraphQLHoc (sources, config) {
         this.cancelResolve = () => (cancel = true)
       }
 
-      query = source => (options = this.options) => {
-        return this.store.query(source, options)
+      query = document => (options = this.options) => {
+        return this.client.query(document, options)
       }
 
-      mutate = source => (options = this.options) => {
-        return this.store.mutate(source, options)
+      mutate = document => (options = this.options) => {
+        return this.client.mutate(document, options)
       }
 
-      graphql = source => (options = this.options) => {
-        return this.store.graphql(source, options)
+      fetch = document => (options = this.options) => {
+        return this.client.fetch(document, options)
       }
 
       subscribe = document => async (options = this.options) => {
-        const iterator = await this.store.subscribe(document, options)
+        const iterator = await this.client.subscribe(document, options)
 
         registerSubscription(
           iterator.toObservable().subscribe(res => {

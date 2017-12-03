@@ -1,5 +1,3 @@
-export function hasDirectives (names, document) {
-  return document.directives.some(({ name: { value, }, }) =>
-    names.includes(value)
-  )
+export function hasDirectives (names, node) {
+  return node.directives.some(({ name: { value, }, }) => names.includes(value))
 }

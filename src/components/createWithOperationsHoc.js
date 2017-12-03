@@ -5,14 +5,7 @@ import { parse, } from 'graphql'
 import hoistNonReactStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
 
-import {
-  shallowEqual,
-  getPropNameOr,
-  getOperationASTs,
-  getFragmentASTs,
-  getOperationName,
-  makeExecutableOperation,
-} from '../utils'
+import { shallowEqual, getPropNameOr, operationsMap, mapObject, } from '../utils'
 
 export function createWithOperationsHoc (sources, config) {
   const mutationsKey = getPropNameOr('mutations')(config)
@@ -39,13 +32,13 @@ export function createWithOperationsHoc (sources, config) {
       static WrappedComponent = BaseComponent
 
       static contextTypes = {
-        store: PropTypes.object.isRequired,
+        client: PropTypes.object.isRequired,
       }
 
       constructor (props, context) {
         super(props, context)
 
-        this.store = context.store
+        this.client = context.client
         this.options = computeOptions(props)
         this.parsedData = this.parse(sources)
       }
@@ -67,72 +60,42 @@ export function createWithOperationsHoc (sources, config) {
       parse = sources => {
         const source = sources.reduce((acc, curr) => (acc += curr), '')
         const document = parse(source)
-        const asts = getOperationASTs(document).reduce(
-          (acc, ast) => ({
-            ...acc,
-            [ast.operation]: [ ...(acc[ast.operation] || []), ast, ],
-          }),
-          {}
-        )
-
-        asts.fragments = getFragmentASTs(document).reduce(
-          (acc, ast) => ({
-            ...acc,
-            [ast.name.value]: ast,
-          }),
-          {}
-        )
+        const operations = operationsMap(document)
 
         return {
           source,
           document,
-          asts,
+          operations,
         }
       }
 
       resolve = () => {
         const {
-          asts: { query: queries = [], mutation: mutations = [], fragments, },
+          operations: {
+            query: queries = {},
+            mutation: mutations = {},
+            fetch: fetches = {},
+          },
         } = this.parsedData
-
-        const queryOperations = queries.reduce((acc, curr) => {
-          return {
-            ...acc,
-            [getOperationName(curr)]: makeExecutableOperation.call(
-              this,
-              curr,
-              fragments
-            ),
-          }
-        }, {})
-
-        const mutationOperations = mutations.reduce((acc, curr) => {
-          return {
-            ...acc,
-            [getOperationName(curr)]: makeExecutableOperation.call(
-              this,
-              curr,
-              fragments
-            ),
-          }
-        }, {})
-
         this.operations = {
-          [queriesKey]: queryOperations,
-          [mutationsKey]: mutationOperations,
+          [queriesKey]: {
+            ...mapObject(this.query)(queries),
+            ...mapObject(this.fetch)(fetches),
+          },
+          [mutationsKey]: mapObject(this.mutate)(mutations),
         }
       }
 
-      query = source => (options = this.options) => {
-        return this.store.query(source, options)
+      query = document => (options = this.options) => {
+        return this.client.query(document, options)
       }
 
-      mutate = source => (options = this.options) => {
-        return this.store.mutate(source, options)
+      mutate = document => (options = this.options) => {
+        return this.client.mutate(document, options)
       }
 
-      graphql = source => (options = this.options) => {
-        return this.store.graphql(source, options)
+      fetch = document => (options = this.options) => {
+        return this.client.fetch(document, options)
       }
 
       render () {
