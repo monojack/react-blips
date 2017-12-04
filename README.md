@@ -16,7 +16,9 @@ Official React bindings for [**Blips**](https://github.com/monojack/blips)
   * [The `data` prop](#the-data-prop)
   * [The `queries` prop](#the-queries-prop)
   * [The `mutations` prop](#the-mutations-prop)
-  * [Subscribing to store changes](#subscribing-to-store-changes)
+  * [The `withOperations` HOC](#the-withoperations-hoc)
+  * [The `withClient` HOC](#the-withclient-hoc)
+  * [Subscribing to state changes](#subscribing-to-state-changes)
 * [Tips](#tips)
 * [Examples](https://github.com/monojack/blips/tree/master/examples)
 
@@ -35,18 +37,18 @@ This assumes you are using **npm** and have already installed
 #### The `Provider` instance
 
 To get started you'll have to
-[create the store](https://github.com/monojack/blips#creating-the-store) and
-pass it as a prop to the `Provider` component
+[create the blips client](https://github.com/monojack/blips#the-client-instance)
+and pass it as a prop to the `Provider` component
 
 ```js
-import { createStore } from 'blips'
+import { BlipsClient } from 'blips'
 import { Provider } from 'react-blips'
 // ...
 
-const store = createStore(/* ... */)
+const client = new BlipsClient(...)
 
 ReactDOM.render(
-  <Provider {...{ store }}>
+  <Provider {...{ client }}>
     <App />
   </Provider>,
   document.getElementById('root')
@@ -306,11 +308,11 @@ render() {
 ```
 
 This is great for the above type of behaviour, but you can also use these
-queries to poll the store at a specific interval and update the component's
+queries to poll the state at a specific interval and update the component's
 state. The problem with this approach is that you'd have to add the props you
 want to poll for to the state so that your component updates correctly. If this
 is what you want, you're better off using
-[`subscription`](#subscribing-to-store-changes) instead of `query`
+[`subscription`](#subscribing-to-state-changes) instead of `query`
 
 #### The `mutations` prop
 
@@ -362,10 +364,10 @@ export default graphql(allTodosSubscription, createTodoMutation, {
 })
 ```
 
-#### Subscribing to store changes
+#### Subscribing to state changes
 
 If you provide subscription operations to `graphql()`, the connected component
-will also subscribe to store changes and will update correctly. It will also
+will also subscribe to state changes and will update correctly. It will also
 clean up after itself when unmounting. There's no magic happening behind the
 scenes, you'll still have to write the resolvers yourself. Read the
 [**Blips** documentation](https://github.com/monojack/blips#subscriptions) about
@@ -384,6 +386,25 @@ const allTodosSubscription = `
 
 export default graphql(allTodosSubscription)(TodoList)
 ```
+
+#### The `withOperations` HOC
+
+The `withOperations` higher-order component creates components that have the
+ability to execute queries and mutations manually. The signature of
+`withOperations` is the same as that of `graphql`. It will not provide a `data`
+prop since it won't execute operations for you, but it will provide the
+`queries` and `mutations` props. It's useful for creating components that don't
+need to be connected to the store but may still execute mutations or read from
+it on demand, like when you have a component a few levels deep from a container
+and you don't want to pass callbacks all the way down.
+
+#### The `withClient` HOC
+
+Components created by the `withClient` higher-order component have access to the
+entire `client` instance. `withClient` accepts a single argument, the base
+component and it will provide a `client` prop. Messing with the client instance
+directly is risky, so this is not a recommended approach, but it's available if
+you consider that you need it. Event then, `withOperations` may still be enough.
 
 ## Tips
 
