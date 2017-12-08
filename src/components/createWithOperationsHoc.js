@@ -5,7 +5,13 @@ import { parse, } from 'graphql'
 import hoistNonReactStatics from 'hoist-non-react-statics'
 import invariant from 'invariant'
 
-import { shallowEqual, getPropNameOr, operationsMap, mapObject, } from '../utils'
+import {
+  shallowEqual,
+  getPropNameOr,
+  operationsMap,
+  mapObject,
+  mergeOperations,
+} from '../utils'
 
 export function createWithOperationsHoc (sources, config) {
   const mutationsKey = getPropNameOr('mutations')(config)
@@ -58,13 +64,14 @@ export function createWithOperationsHoc (sources, config) {
       }
 
       parse = sources => {
-        const source = sources.reduce((acc, curr) => (acc += curr), '')
-        const document = parse(source)
-        const operations = operationsMap(document)
+        const documents = sources.map(parse)
+        const operations = documents
+          .map(operationsMap)
+          .reduce(mergeOperations, {})
 
         return {
-          source,
-          document,
+          sources,
+          documents,
           operations,
         }
       }

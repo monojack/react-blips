@@ -11,6 +11,7 @@ import {
   computeNextState,
   mapObject,
   operationsMap,
+  mergeOperations,
   convertSubscriptionToQuery,
 } from '../utils'
 
@@ -112,13 +113,14 @@ export function createGraphQLHoc (sources, config) {
       }
 
       parse = sources => {
-        const source = sources.reduce((acc, curr) => (acc += curr), '')
-        const document = parse(source)
-        const operations = operationsMap(document)
+        const documents = sources.map(parse)
+        const operations = documents
+          .map(operationsMap)
+          .reduce(mergeOperations, {})
 
         return {
-          source,
-          document,
+          sources,
+          documents,
           operations,
         }
       }
