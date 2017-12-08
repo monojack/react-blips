@@ -163,7 +163,7 @@ export function createGraphQLHoc (sources, config) {
 
         Promise.all(promiseRegistry).then(res => {
           !cancel &&
-            this.batchUpdateState(res, { data: { loading: false, }, }, true)
+            this.batchUpdateState(res, { [dataKey]: { loading: false, }, }, true)
         })
 
         this.cancelResolve = () => (cancel = true)
