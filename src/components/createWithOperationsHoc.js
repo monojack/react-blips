@@ -11,6 +11,8 @@ import {
   operationsMap,
   mapObject,
   mergeOperations,
+  isEmpty,
+  isNil,
 } from '../utils'
 
 export function createWithOperationsHoc (sources, config) {
@@ -107,13 +109,16 @@ export function createWithOperationsHoc (sources, config) {
 
       render () {
         const props = Object.entries(this.operations).reduce(
-          (acc, [ key, value, ]) => ({
-            ...acc,
-            [key]: {
-              ...(acc[key] || {}),
-              ...value,
-            },
-          }),
+          (acc, [ key, value, ]) => {
+            if (isEmpty(value) || isNil(value)) return acc
+            return {
+              ...acc,
+              [key]: {
+                ...(acc[key] || {}),
+                ...value,
+              },
+            }
+          },
           this.props
         )
 

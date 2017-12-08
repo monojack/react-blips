@@ -2,6 +2,7 @@ import { isNil, } from './isNil'
 import { when, } from './when'
 import { isEmpty, } from './isEmpty'
 import { omit, } from './omit'
+import { removeEmptyOrNilProps, } from './removeEmptyOrNilProps'
 
 import { mergeErrors, } from './mergeErrors'
 
@@ -36,5 +37,5 @@ export function computeNextState (
     update[dataKey]['errors'] = errorsObject
   }
 
-  return update
+  return removeEmptyOrNilProps(update)
 }
