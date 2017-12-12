@@ -182,10 +182,10 @@ export function createGraphQLHoc (sources, config) {
       }
 
       subscribe = document => async (options = this.options) => {
-        const iterator = await this.client.subscribe(document, options)
+        const observable = await this.client.subscribe(document, options)
 
         registerSubscription(
-          iterator.toObservable().subscribe(res => {
+          observable.subscribe(res => {
             updateBatch.push(res)
             process.nextTick(this.batchUpdateState)
           })
