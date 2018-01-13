@@ -1,6 +1,6 @@
 export function isEmpty (value) {
   if (typeof value === 'string') {
-    return value !== ''
+    return value === ''
   } else if (typeof value === 'object') {
     if (value.hasOwnProperty('length')) {
       return !value.length
